@@ -141,9 +141,8 @@ module.exports = {
                     console.error(err); // Log the error to the console
                     return res.status(400).json({ error: 'Failed to upload profile picture' });
                 }
-
-                const username = req.body.email.split('@')[0];
-                const profilePictureUrl = `${domain}/uploads/profile/${username}.jpg`;
+                const username = req.file.path;
+                const profilePictureUrl = `${domain}/${username}`;
 
                 const user = await User.findOne({ email: req.body.email });
                 user.image = profilePictureUrl;

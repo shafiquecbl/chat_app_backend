@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const {urlError, customError} = require('./errors');
+const { urlError, customError } = require('./errors');
 const initCommonMiddleware = require('./api/middlewares/common');
 const routes = require('./routes');
 
@@ -9,11 +9,12 @@ const routes = require('./routes');
 initCommonMiddleware(app, express);
 
 // call routes function to use routes
+app.use('/uploads', express.static('uploads'));
 routes(app);
 
 // error handling
-app.use(urlError);
-app.use(customError);
+// app.use(urlError);
+// app.use(customError);
 
 
 module.exports = app;
