@@ -1,4 +1,5 @@
 
- const emailRegex = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
 
- module.exports = emailRegex;
+module.exports = {
+    domain: 'http://192.168.18.52:3000',
+};

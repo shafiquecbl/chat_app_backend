@@ -4,7 +4,7 @@ const namespace = '/api/v1';
 
 // routes
 const initRoutes = (app) => {
-    app.use(namespace + '/users', userRoutes);
+    app.use(`${namespace}/users`, userRoutes);
 };
 
 
