@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const emailRegx = require('../common/constants');
 
 const userSchema = new mongoose.Schema({
     email: {
@@ -38,7 +37,27 @@ const userSchema = new mongoose.Schema({
         default: []
     },
     contacts: {
-        type: [String],
+        type: [{
+            user: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true
+            },
+            lastMessage: {
+                type: String,
+                required: false
+            },
+            createdAt: {
+                type: Date,
+                required: false
+            },
+            safe: {
+                type: Boolean,
+                required: false,
+                default: false
+            }
+
+        }],
         required: false,
         default: []
     },
@@ -60,6 +79,11 @@ const userSchema = new mongoose.Schema({
         type: Number,
         required: false,
         default: 0,
+    },
+    online: {
+        type: Boolean,
+        required: false,
+        default: false
     },
     token: {
         type: String,

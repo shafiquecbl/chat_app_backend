@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { jwtKey } = require('../common/env');
 const { profilePictureUploader } = require('../middlewares/image');
 const { domain } = require('../common/constants');
+const Message = require('../models/message');
 
 
 module.exports = {
@@ -68,7 +69,9 @@ module.exports = {
             const user = await User.findOne({ email: req.body.email });
             const token = jwt.sign(req.body.email, jwtKey);
             user.token = token;
+
             const result = await user.save();
+            user.contacts = [];
             res.status(200).json(user.toJSON());
 
         }
@@ -201,6 +204,85 @@ module.exports = {
                 error: err.message
             });
         }
+    },
+
+    async updateOnlineStatus(email, status) {
+        try {
+            const user = await User.findOne({ email: email });
+            user.online = status;
+            const result = await user.save();
+        }
+        catch (err) {
+            console.log(err);
+        }
+    },
+
+    async addMessageAndContact(senderId, receiverId, message) {
+        try {
+            const senderUser = await User.findOne({ _id: senderId });
+            const receiverUser = await User.findOne({ _id: receiverId });
+
+            const senderContact = {
+                user: receiverUser._id,
+                lastMessage: message,
+                createdAt: Date.now(),
+                safe: true,
+            };
+
+            const receiverContact = {
+                user: senderUser._id,
+                lastMessage: message,
+                createdAt: Date.now(),
+                safe: false,
+            };
+
+            // add contact to sender
+            const senderContactIndex = senderUser.contacts.findIndex(contact => contact.user.toString() === receiverUser._id.toString());
+            if (senderContactIndex === -1) {
+                senderUser.contacts.push(senderContact);
+            }
+            else {
+                senderUser.contacts[senderContactIndex] = senderContact;
+            }
+
+            // add contact to receiver
+            const receiverContactIndex = receiverUser.contacts.findIndex(contact => contact.user.toString() === senderUser._id.toString());
+            if (receiverContactIndex === -1) {
+                receiverUser.contacts.push(receiverContact);
+            }
+            else {
+                receiverUser.contacts[receiverContactIndex] = receiverContact;
+            }
+
+            senderUser.save();
+            receiverUser.save();
+
+
+            // save message in the database
+            const newMessage = new Message({
+                sender: senderUser._id,
+                receiver: receiverUser._id,
+                message: message,
+                createdAt: Date.now(),
+                image: false
+            });
+
+            const messageResult = await newMessage.save();
+
+        }
+        catch (err) {
+            console.log(err);
+        }
+
+    },
+
+
+    async getContacts(userId) {
+        const user = await User.findById(userId).populate('contacts.user');
+        return user.contacts;
     }
+
+
+
 
 }
