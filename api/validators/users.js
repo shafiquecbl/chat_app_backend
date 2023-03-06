@@ -18,7 +18,7 @@ module.exports = {
                 return Promise.reject(error);
             });
         }),
-        check('password', 'Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+        check('password', 'Password is required').notEmpty().isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
         check('name', 'Name is required').notEmpty(),
         check('gender', 'Gender is required').notEmpty(),
         check('dob', 'Date of birth is required').notEmpty(),
@@ -41,6 +41,10 @@ module.exports = {
     updatePasswordValidators: [
         check('email', 'Email is required').notEmpty(),
         check('password', 'Password is required').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+    ],
+
+    updateImageValidators: [
+        check('email', 'Email is required').notEmpty(),
     ],
 
 
