@@ -13,8 +13,8 @@ app.use('/uploads', express.static('uploads'));
 routes(app);
 
 // error handling
-// app.use(urlError);
-// app.use(customError);
+app.use(urlError);
+app.use(customError);
 
 
 module.exports = app;
