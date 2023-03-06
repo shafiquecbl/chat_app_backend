@@ -12,7 +12,7 @@ router.post('/get-user', validators.checkUserValdiaors, controller.getUser);
 
 router.post('/update-user', validators.updateValidators, controller.update);
 
-router.post('/update-password', validators.updatePasswordValidators, controller.update);
+router.post('/update-password', validators.updatePasswordValidators, controller.updatePassword);
 
 router.post('/update-image', controller.updateImage);
 

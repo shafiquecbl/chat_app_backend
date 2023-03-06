@@ -113,7 +113,7 @@ module.exports = {
         }
     },
 
-    async update(req, res, next) {
+    async updatePassword(req, res, next) {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(422).json({ errors: errors.array() });
@@ -141,8 +141,7 @@ module.exports = {
                     console.error(err); // Log the error to the console
                     return res.status(400).json({ error: 'Failed to upload profile picture' });
                 }
-                const username = req.file.path;
-                const profilePictureUrl = `${domain}/${username}`;
+                const profilePictureUrl = `${domain}/${req.file.path}`;
 
                 const user = await User.findOne({ email: req.body.email });
                 user.image = profilePictureUrl;
