@@ -8,8 +8,9 @@ const routes = require('./routes');
 // call common middleware function to use common middleware
 initCommonMiddleware(app, express);
 
-// call routes function to use routes
+// use static folder to serve static files
 app.use('/uploads', express.static('uploads'));
+// call routes function to use routes
 routes(app);
 
 // error handling
