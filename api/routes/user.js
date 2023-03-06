@@ -19,5 +19,7 @@ router.post('/update-image', validators.updateImageValidators, validateRequest, 
 
 router.post('/get-users', validators.checkUserValdiaors, validateRequest, controller.getUsersWithSimilarInterests);
 
+router.post('/search-users', controller.searchUsers);
+
 
 module.exports = router;

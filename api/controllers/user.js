@@ -177,4 +177,30 @@ module.exports = {
         }
     },
 
+    async searchUsers(req, res, next) {
+        try {
+            const PAGE_SIZE = 10;
+            const page = parseInt(req.body.page) || 1;
+            const searchQuery = req.body.query;
+            const count = await User.countDocuments({ name: { $regex: searchQuery, $options: 'i' } });
+            const totalPages = Math.ceil(count / PAGE_SIZE);
+
+            const users = await User.find({ name: { $regex: searchQuery, $options: 'i' } })
+                .sort({ createdAt: 1, email: 1 })
+                .skip((page - 1) * PAGE_SIZE)
+                .limit(PAGE_SIZE);
+
+            res.status(200).json({
+                users: users,
+                page: page,
+                hasMore: page < totalPages
+            });
+        }
+        catch (err) {
+            res.status(500).json({
+                error: err.message
+            });
+        }
+    }
+
 }
