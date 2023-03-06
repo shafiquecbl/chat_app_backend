@@ -17,5 +17,7 @@ router.post('/update-password', validators.updatePasswordValidators, validateReq
 
 router.post('/update-image', validators.updateImageValidators, validateRequest, controller.updateImage);
 
+router.post('/get-users', validators.checkUserValdiaors, validateRequest, controller.getUsersWithSimilarInterests);
+
 
 module.exports = router;
