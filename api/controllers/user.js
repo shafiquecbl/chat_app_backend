@@ -215,15 +215,18 @@ module.exports = {
         }
     },
 
-    async addMessageAndContact(senderId, receiverId, message) {
+    async addMessageAndContact(senderId, receiverId, message, image) {
         try {
             const senderUser = await User.findOne({ _id: senderId });
             const receiverUser = await User.findOne({ _id: receiverId });
+
+            console.log(image);
 
             const senderContact = {
                 user: receiverUser._id,
                 lastMessage: message,
                 createdAt: Date.now(),
+                image: image,
                 safe: true,
             };
 
@@ -231,6 +234,7 @@ module.exports = {
                 user: senderUser._id,
                 lastMessage: message,
                 createdAt: Date.now(),
+                image: image,
                 safe: false,
             };
 
@@ -262,7 +266,7 @@ module.exports = {
                 receiver: receiverUser._id,
                 message: message,
                 createdAt: Date.now(),
-                image: false
+                image: image
             });
 
             const messageResult = await newMessage.save();

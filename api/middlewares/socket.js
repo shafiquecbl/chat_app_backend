@@ -1,5 +1,6 @@
 const { updateOnlineStatus } = require('../controllers/user');
 const { addMessageAndContact, getContacts, getInitialMessages, getEmailFromId } = require('../controllers/user');
+const { uploadMessageImage } = require('../middlewares/image');
 
 module.exports = {
     initSocket: (io) => {
@@ -25,7 +26,13 @@ module.exports = {
 
             // send message
             socket.on('message', async (data) => {
-                const message = await addMessageAndContact(data.sender, data.receiver, data.message);
+                var messageData = '';
+                if (data.image === true) {
+                    messageData = await uploadMessageImage(data.message, Date.now().toString().replace('.', ''));
+                } else {
+                    messageData = data.message;
+                }
+                const message = await addMessageAndContact(data.sender, data.receiver, messageData, data.image);
                 const senderEmail = await getEmailFromId(data.sender);
                 const receiverEmail = await getEmailFromId(data.receiver);
                 sendMessage(io, receiverEmail, [message]);
