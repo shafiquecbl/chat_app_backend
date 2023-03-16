@@ -1,8 +1,6 @@
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
-const { jwtKey } = require('../common/env');
 const { profilePictureUploader } = require('../middlewares/image');
-const { domain } = require('../common/constants');
 const Message = require('../models/message');
 
 
@@ -12,7 +10,7 @@ module.exports = {
         try {
             const user = await User.findOne({ email: req.body.email });
             if (user) {
-                const token = jwt.sign(req.body.email, jwtKey);
+                const token = jwt.sign(req.body.email, process.env.JWT_KEY);
                 user.token = token;
                 const result = await user.save();
                 res.status(200).json({
@@ -35,7 +33,7 @@ module.exports = {
 
     async signup(req, res, next) {
         try {
-            const token = jwt.sign(req.body.email, jwtKey);
+            const token = jwt.sign(req.body.email, process.env.JWT_KEY);
             const user = new User({
                 email: req.body.email,
                 password: req.body.password,
@@ -67,7 +65,7 @@ module.exports = {
     async getUser(req, res, next) {
         try {
             const user = await User.findOne({ email: req.body.email });
-            const token = jwt.sign(req.body.email, jwtKey);
+            const token = jwt.sign(req.body.email, process.env.JWT_KEY);
             user.token = token;
 
             const result = await user.save();
@@ -128,7 +126,7 @@ module.exports = {
                     console.error(err); // Log error to console
                     return res.status(400).json({ error: 'Failed to upload profile picture' });
                 }
-                const profilePictureUrl = `${domain}/${req.file.path}`;
+                const profilePictureUrl = `${process.env.DOMAIN}/${req.file.path}`;
 
                 const user = await User.findOne({ email: req.body.email });
                 user.image = profilePictureUrl;
@@ -269,6 +267,8 @@ module.exports = {
 
             const messageResult = await newMessage.save();
 
+            return messageResult;
+
         }
         catch (err) {
             console.log(err);
@@ -277,12 +277,37 @@ module.exports = {
     },
 
 
-    async getContacts(userId) {
-        const user = await User.findById(userId).populate('contacts.user');
+    async getContacts(email) {
+        console.log(email);
+        const user = await User.findOne({ email: email }).populate('contacts.user');
         return user.contacts;
+    },
+
+    async getInitialMessages(senderId, receiverId) {
+        try {
+            const messages = await Message.find({
+                $or: [
+                    { sender: senderId, receiver: receiverId },
+                    { sender: receiverId, receiver: senderId }
+                ]
+            }).sort({ createdAt: -1 });
+
+            return messages;
+        }
+        catch (err) {
+            console.log(err);
+        }
+    },
+
+    async getEmailFromId(id) {
+        try {
+            const user = await User.findOne({ _id: id });
+            return user.email;
+        }
+        catch (err) {
+            console.log(err);
+        }
     }
-
-
 
 
 }

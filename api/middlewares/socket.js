@@ -1,34 +1,91 @@
 const { updateOnlineStatus } = require('../controllers/user');
-const { addMessageAndContact, getContacts } = require('../controllers/user');
+const { addMessageAndContact, getContacts, getInitialMessages, getEmailFromId } = require('../controllers/user');
 
 module.exports = {
     initSocket: (io) => {
         io.on('connection', (socket) => {
 
-            socket.on('online', (email) => {
+            // when user is online
+            socket.on('online', async (email) => {
+                socket.join(email);
                 updateOnlineStatus(email, true);
+                sendUserStatus(io, email, true);
+                emitContacts(io, email);
             });
 
+            // when user is offline
             socket.on('offline', (email) => {
                 updateOnlineStatus(email, false);
+                sendUserStatus(io, email, false);
             });
 
             socket.on('disconnect', () => {
                 console.log('user disconnected');
             });
 
-            socket.on('message', (data) => {
-                addMessageAndContact(data.sender, data.receiver, data.message);
+            // send message
+            socket.on('message', async (data) => {
+                const message = await addMessageAndContact(data.sender, data.receiver, data.message);
+                const senderEmail = await getEmailFromId(data.sender);
+                const receiverEmail = await getEmailFromId(data.receiver);
+                sendMessage(io, receiverEmail, [message]);
+                sendMessage(io, senderEmail, [message]);
+                emitContacts(io, senderEmail);
+                emitContacts(io, receiverEmail);
 
             });
 
+            // get contacts
             socket.on('contacts', (data) => {
-                socket.join(data);
                 getContacts(data).then((contacts) => {
                     io.to(data).emit('contacts', contacts);
                 });
             });
 
+            // get initial messages
+            socket.on('initialMessages', async (data) => {
+                emitInitialMessages(io, data.email, data.sender, data.receiver);
+            });
+
+            // on join chat
+            socket.on('joinChat', (data) => {
+                inChat(io, data.sender, data.receiver, data.status);
+            });
+
         });
-    }
+    },
 }
+
+const emitContacts = (io, email) => {
+    getContacts(email).then((contacts) => {
+        io.to(email).emit('contacts', contacts);
+    });
+}
+
+const sendUserStatus = (io, email, status) => {
+    getContacts(email).then((contacts) => {
+        for (let i = 0; i < contacts.length; i++) {
+            io.to(contacts[i].user.email).emit('onlineUsers', {
+                email: email,
+                status: status
+            });
+        }
+    });
+}
+
+const emitInitialMessages = async (io, email, senderId, receiverId) => {
+    const messages = await getInitialMessages(senderId, receiverId);
+    io.to(email).emit('onMessage', messages);
+}
+
+const sendMessage = (io, receiver, messages) => {
+    io.to(receiver).emit('onMessage', messages);
+}
+
+const inChat = (io, sender, receiver, status) => {
+    io.to(receiver).emit('inChat', {
+        email: sender,
+        status: status,
+    });
+}
+
