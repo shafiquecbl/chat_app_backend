@@ -13,4 +13,4 @@ const port = process.env.PORT || 3000;
 server.listen(port, () => console.log(`Listening on port ${port}`));
 
 // db connection
-mongoose.connect(process.env.MONGODB_URI);
+mongoose.connect(process.env.MONGODB_URI).catch(err => console.log(err));
