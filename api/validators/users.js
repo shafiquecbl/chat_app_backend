@@ -44,7 +44,7 @@ module.exports = {
     ],
 
     updateImageValidators: [
-        check('email', 'Email is required').notEmpty(),
+        check('email', 'Email is required').exists(),
     ],
 
 

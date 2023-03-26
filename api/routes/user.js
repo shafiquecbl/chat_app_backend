@@ -15,13 +15,15 @@ router.post('/update-user', validators.updateValidators, validateRequest, contro
 
 router.post('/update-password', validators.updatePasswordValidators, validateRequest, controller.updatePassword);
 
-router.post('/update-image', validators.updateImageValidators, validateRequest, controller.updateImage);
+router.post('/update-image', controller.updateImage);
 
 router.post('/get-users', validators.checkUserValdiaors, validateRequest, controller.getUsersWithSimilarInterests);
 
 router.post('/search-users', controller.searchUsers);
 
+router.post('/update-listen-status', controller.updateUserListenStatus);
 
+router.get('/get-country-city', controller.getCityAndCountry);
 
 
 module.exports = router;

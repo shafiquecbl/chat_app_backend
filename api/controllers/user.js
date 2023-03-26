@@ -2,6 +2,7 @@ const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const { profilePictureUploader } = require('../middlewares/image');
 const Message = require('../models/message');
+const { customError } = require('../middlewares/errors');
 
 
 module.exports = {
@@ -24,9 +25,7 @@ module.exports = {
             }
         }
         catch (err) {
-            res.status(500).json({
-                error: err.message
-            });
+            customError(err);
         }
 
     },
@@ -55,9 +54,7 @@ module.exports = {
             });
 
         } catch (err) {
-            res.status(500).json({
-                error: err.message
-            });
+            customError(err);
         }
 
     },
@@ -74,9 +71,7 @@ module.exports = {
 
         }
         catch (err) {
-            res.status(500).json({
-                error: err.message
-            });
+            customError(err);
         }
 
     },
@@ -95,9 +90,22 @@ module.exports = {
             res.status(200).json(user.toJSON());
         }
         catch (err) {
-            res.status(500).json({
-                error: err.message
+            customError(err);
+        }
+    },
+
+    async updateUserListenStatus(req, res, next) {
+        try {
+            const user = await User.findOne({ email: req.body.email });
+            user.listenStatus = req.body.listen;
+            const result = await user.save().then(result => {
+                res.status(200).json(user.toJSON())
+            }).catch(err => {
+                customError(err);
             });
+        }
+        catch (err) {
+            customError(err);
         }
     },
 
@@ -110,9 +118,7 @@ module.exports = {
                 message: 'Password updated successfully'
             });
         } catch (err) {
-            res.status(500).json({
-                error: err.message
-            });
+            customError(err);
         }
 
     },
@@ -137,17 +143,13 @@ module.exports = {
                         image: profilePictureUrl
                     });
                 }).catch(err => {
-                    res.status(500).json({
-                        error: err.message
-                    });
+                    customError(err);
                 });
 
             },
             );
         } catch (err) {
-            res.status(500).json({
-                error: err.message
-            });
+            customError(err);
         }
     },
 
@@ -157,24 +159,61 @@ module.exports = {
             const page = parseInt(req.body.page) || 1;
             const user = await User.findOne({ email: req.body.email });
 
-            const count = await User.countDocuments({ interests: { $in: user.interests }, email: { $ne: user.email } });
-            const totalPages = Math.ceil(count / PAGE_SIZE);
+            if (req.body.interest === '') {
+                const count = await User.countDocuments({
+                    $or: [
+                        { listenStatus: req.body.listen },
+                        { listenStatus: null }
+                    ], interests: { $in: user.interests }, email: { $ne: user.email }
+                });
+                const totalPages = Math.ceil(count / PAGE_SIZE);
 
-            const users = await User.find({ interests: { $in: user.interests }, email: { $ne: user.email } })
-                .sort({ createdAt: 1, email: 1 })
-                .skip((page - 1) * PAGE_SIZE)
-                .limit(PAGE_SIZE);
+                const users = await User.find({
+                    $or: [
+                        { listenStatus: req.body.listen },
+                        { listenStatus: null }
+                    ]
+                    , interests: { $in: user.interests }, email: { $ne: user.email }
+                })
+                    .sort({ createdAt: 1, email: 1 })
+                    .skip((page - 1) * PAGE_SIZE)
+                    .limit(PAGE_SIZE);
 
-            res.status(200).json({
-                users: users,
-                page: page,
-                hasMore: page < totalPages
-            });
+                res.status(200).json({
+                    users: users,
+                    page: page,
+                    hasMore: page < totalPages
+                });
+            } else {
+                const count = await User.countDocuments({
+                    $or: [
+                        { listenStatus: req.body.listen },
+                        { listenStatus: null }
+                    ], interests: { $in: [req.body.interest] }, email: { $ne: user.email }
+                });
+                const totalPages = Math.ceil(count / PAGE_SIZE);
+
+                const users = await User.find({
+                    $or: [
+                        { listenStatus: req.body.listen },
+                        { listenStatus: null }
+                    ], interests: { $in: [req.body.interest] }, email: { $ne: user.email }
+                })
+                    .sort({ createdAt: 1, email: 1 })
+                    .skip((page - 1) * PAGE_SIZE)
+                    .limit(PAGE_SIZE);
+
+                res.status(200).json({
+                    users: users,
+                    page: page,
+                    hasMore: page < totalPages
+                });
+            }
+
+
         }
         catch (err) {
-            res.status(500).json({
-                error: err.message
-            });
+            customError(err);
         }
     },
 
@@ -198,9 +237,36 @@ module.exports = {
             });
         }
         catch (err) {
-            res.status(500).json({
-                error: err.message
+            customError(err);
+        }
+    },
+
+    async getCityAndCountry(req, res, next) {
+        try {
+            // get the city and country of every user in the database 
+            const cities = [];
+            const countries = [];
+            const users = await User.find({}).select('city country');
+            users.forEach(user => {
+                if (user.city !== '') {
+                    cities.push(user.city.toLowerCase().trim());
+                }
+                if (user.country !== '') {
+                    countries.push(user.country.toLowerCase().trim());
+                }
             });
+            // remove duplicates
+            const uniqueCities = [...new Set(cities)];
+            const uniqueCountries = [...new Set(countries)];
+
+            res.status(200).json({
+                cities: uniqueCities,
+                countries: uniqueCountries
+            });
+
+        }
+        catch (err) {
+            customError(err);
         }
     },
 

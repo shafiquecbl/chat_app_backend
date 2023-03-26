@@ -69,6 +69,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: false
     },
+    listenStatus: {
+        type: Boolean,
+        required: false,
+        default: false
+    },
     infoVisibility: {
         type: Boolean,
         required: false,

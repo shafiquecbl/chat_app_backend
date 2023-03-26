@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const { urlError, customError } = require('./errors');
+const { urlError } = require('./errors');
 const initCommonMiddleware = require('./api/middlewares/common');
 const routes = require('./routes');
 
@@ -15,7 +15,6 @@ routes(app);
 
 // error handling
 app.use(urlError);
-app.use(customError);
 
 
 module.exports = app;
