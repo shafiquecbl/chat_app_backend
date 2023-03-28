@@ -51,13 +51,25 @@ const userSchema = new mongoose.Schema({
                 type: Date,
                 required: false
             },
-            safe: {
+            ended: {
                 type: Boolean,
                 required: false,
                 default: false
             },
             image: {
                 type: Boolean,
+                required: false
+            },
+            request: {
+                type: String,
+                required: false,
+            },
+            sender: {
+                type: String,
+                required: false
+            },
+            startTime: {
+                type: Date,
                 required: false
             },
 

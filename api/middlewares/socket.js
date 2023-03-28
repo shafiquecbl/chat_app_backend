@@ -1,6 +1,7 @@
 const { updateOnlineStatus } = require('../controllers/user');
 const { addMessageAndContact, getContacts, getInitialMessages, getEmailFromId } = require('../controllers/user');
 const { uploadMessageImage } = require('../middlewares/image');
+const { onReview } = require('../controllers/review');
 
 module.exports = {
     initSocket: (io) => {
@@ -32,11 +33,13 @@ module.exports = {
                 } else {
                     messageData = data.message;
                 }
-                const message = await addMessageAndContact(data.sender, data.receiver, messageData, data.image);
+                const message = await addMessageAndContact(data.sender, data.receiver, messageData, data.image, data.request, data.ended);
                 const senderEmail = await getEmailFromId(data.sender);
                 const receiverEmail = await getEmailFromId(data.receiver);
-                sendMessage(io, receiverEmail, [message]);
-                sendMessage(io, senderEmail, [message]);
+                if (messageData != 'Chat Request' && messageData != 'Chat Ended' && messageData != 'Request Accepted') {
+                    sendMessage(io, receiverEmail, [message]);
+                    sendMessage(io, senderEmail, [message]);
+                }
                 emitContacts(io, senderEmail);
                 emitContacts(io, receiverEmail);
 
@@ -57,6 +60,10 @@ module.exports = {
             // on join chat
             socket.on('joinChat', (data) => {
                 inChat(io, data.sender, data.receiver, data.status);
+            });
+
+            socket.on('review', async (data) => {
+                onReview(io, data);
             });
 
         });

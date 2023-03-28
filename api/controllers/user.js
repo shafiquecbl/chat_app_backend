@@ -162,7 +162,7 @@ module.exports = {
             if (req.body.interest === '') {
                 const count = await User.countDocuments({
                     $or: [
-                        { listenStatus: req.body.listen },
+                        { listenStatus: !req.body.listen },
                         { listenStatus: null }
                     ], interests: { $in: user.interests }, email: { $ne: user.email }
                 });
@@ -170,7 +170,7 @@ module.exports = {
 
                 const users = await User.find({
                     $or: [
-                        { listenStatus: req.body.listen },
+                        { listenStatus: !req.body.listen },
                         { listenStatus: null }
                     ]
                     , interests: { $in: user.interests }, email: { $ne: user.email }
@@ -281,19 +281,32 @@ module.exports = {
         }
     },
 
-    async addMessageAndContact(senderId, receiverId, message, image) {
+    async addMessageAndContact(senderId, receiverId, message, image, request, ended) {
         try {
             const senderUser = await User.findOne({ _id: senderId });
             const receiverUser = await User.findOne({ _id: receiverId });
 
-            console.log(image);
+            console.log(request);
+
+            if (message != 'Chat Request' && message != 'Chat Ended' && message != 'Request Accepted') {
+                senderId = senderId;
+            } else {
+                // check if the contact already exists then get sender Id
+                const senderContactIndex = senderUser.contacts.findIndex(contact => contact.user.toString() === receiverUser._id.toString());
+                if (senderContactIndex !== -1) {
+                    senderId = senderUser.contacts[senderContactIndex].sender;
+                }
+
+            }
 
             const senderContact = {
                 user: receiverUser._id,
                 lastMessage: message,
                 createdAt: Date.now(),
                 image: image,
-                safe: true,
+                ended: ended,
+                request: request,
+                sender: senderUser._id
             };
 
             const receiverContact = {
@@ -301,8 +314,15 @@ module.exports = {
                 lastMessage: message,
                 createdAt: Date.now(),
                 image: image,
-                safe: false,
+                ended: ended,
+                request: request,
+                sender: senderUser._id
             };
+
+            if (request == 'accepted') {
+                senderContact.startTime = Date.now();
+                receiverContact.startTime = Date.now();
+            }
 
             // add contact to sender
             const senderContactIndex = senderUser.contacts.findIndex(contact => contact.user.toString() === receiverUser._id.toString());
@@ -327,6 +347,7 @@ module.exports = {
 
 
             // save message in the database
+
             const newMessage = new Message({
                 sender: senderUser._id,
                 receiver: receiverUser._id,
@@ -335,7 +356,10 @@ module.exports = {
                 image: image
             });
 
-            const messageResult = await newMessage.save();
+            var messageResult = '';
+            if (message != 'Chat Request' && message != 'Chat Ended' && message != 'Request Accepted') {
+                messageResult = await newMessage.save();
+            }
 
             return messageResult;
 
