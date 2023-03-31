@@ -75,6 +75,17 @@ module.exports = {
         }
 
     },
+    async getAllUser(req, res, next) {
+        try {
+            let userss = await User.find();
+            res.status(200).json(userss);
+
+        }
+        catch (err) {
+            customError(err);
+        }
+
+    },
 
     async update(req, res, next) {
         try {
