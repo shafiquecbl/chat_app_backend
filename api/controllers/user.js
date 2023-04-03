@@ -199,7 +199,7 @@ module.exports = {
             } else {
                 const count = await User.countDocuments({
                     $or: [
-                        { listenStatus: req.body.listen },
+                        { listenStatus: !req.body.listen },
                         { listenStatus: null }
                     ], interests: { $in: [req.body.interest] }, email: { $ne: user.email }
                 });
@@ -207,7 +207,7 @@ module.exports = {
 
                 const users = await User.find({
                     $or: [
-                        { listenStatus: req.body.listen },
+                        { listenStatus: !req.body.listen },
                         { listenStatus: null }
                     ], interests: { $in: [req.body.interest] }, email: { $ne: user.email }
                 })
