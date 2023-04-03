@@ -80,6 +80,7 @@ module.exports = {
         try {
             const user = await User.findOne({ email: req.body.email });
             user.name = req.body.name;
+            user.about = req.body.about;
             user.dob = req.body.dob;
             user.gender = req.body.gender;
             user.country = req.body.country;
