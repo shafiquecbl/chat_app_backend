@@ -25,5 +25,7 @@ router.post('/update-listen-status', controller.updateUserListenStatus);
 
 router.get('/get-country-city', controller.getCityAndCountry);
 
+router.get('/get-allUser', controller.getAllUser);
+
 
 module.exports = router;
