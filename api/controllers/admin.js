@@ -1,7 +1,4 @@
 const Admin = require("../models/admin.js");
-const jwt = require('jsonwebtoken');
-const { profilePictureUploader } = require('../middlewares/image');
-const Message = require('../models/message');
 
 
 module.exports = {
@@ -65,7 +62,7 @@ module.exports = {
         try {
             /// select all users  ///
             const user = await Admin.findByIdAndDelete(req.params.id)
-            return res.status(200).json({message:"user deleted"})
+            return res.status(200).json({ message: "user deleted" })
 
 
         }

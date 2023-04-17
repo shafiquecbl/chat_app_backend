@@ -40,6 +40,10 @@ const userSchema = new mongoose.Schema({
         required: true,
         default: []
     },
+    firebaseToken: {
+        type: String,
+        required: false
+    },
     contacts: {
         type: [{
             user: {
@@ -50,6 +54,11 @@ const userSchema = new mongoose.Schema({
             lastMessage: {
                 type: String,
                 required: false
+            },
+            favorite: {
+                type: Boolean,
+                required: false,
+                default: false
             },
             createdAt: {
                 type: Date,

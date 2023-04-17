@@ -1,8 +1,10 @@
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const { profilePictureUploader } = require('../middlewares/image');
-const Message = require('../models/message');
 const { customError } = require('../middlewares/errors');
+const { getContacts } = require('./message');
+
+
 
 
 module.exports = {
@@ -165,69 +167,6 @@ module.exports = {
         }
     },
 
-    async getUsersWithSimilarInterests(req, res, next) {
-        try {
-            const PAGE_SIZE = 10;
-            const page = parseInt(req.body.page) || 1;
-            const user = await User.findOne({ email: req.body.email });
-
-            if (req.body.interest === '') {
-                const count = await User.countDocuments({
-                    $or: [
-                        { listenStatus: !req.body.listen },
-                        { listenStatus: null }
-                    ], interests: { $in: user.interests }, email: { $ne: user.email }
-                });
-                const totalPages = Math.ceil(count / PAGE_SIZE);
-
-                const users = await User.find({
-                    $or: [
-                        { listenStatus: !req.body.listen },
-                        { listenStatus: null }
-                    ]
-                    , interests: { $in: user.interests }, email: { $ne: user.email }
-                })
-                    .sort({ createdAt: 1, email: 1 })
-                    .skip((page - 1) * PAGE_SIZE)
-                    .limit(PAGE_SIZE);
-
-                res.status(200).json({
-                    users: users,
-                    page: page,
-                    hasMore: page < totalPages
-                });
-            } else {
-                const count = await User.countDocuments({
-                    $or: [
-                        { listenStatus: !req.body.listen },
-                        { listenStatus: null }
-                    ], interests: { $in: [req.body.interest] }, email: { $ne: user.email }
-                });
-                const totalPages = Math.ceil(count / PAGE_SIZE);
-
-                const users = await User.find({
-                    $or: [
-                        { listenStatus: !req.body.listen },
-                        { listenStatus: null }
-                    ], interests: { $in: [req.body.interest] }, email: { $ne: user.email }
-                })
-                    .sort({ createdAt: 1, email: 1 })
-                    .skip((page - 1) * PAGE_SIZE)
-                    .limit(PAGE_SIZE);
-
-                res.status(200).json({
-                    users: users,
-                    page: page,
-                    hasMore: page < totalPages
-                });
-            }
-
-
-        }
-        catch (err) {
-            customError(err);
-        }
-    },
 
     async searchUsers(req, res, next) {
         try {
@@ -293,117 +232,6 @@ module.exports = {
         }
     },
 
-    async addMessageAndContact(senderId, receiverId, message, image, request, ended) {
-        try {
-            const senderUser = await User.findOne({ _id: senderId });
-            const receiverUser = await User.findOne({ _id: receiverId });
-
-            console.log(request);
-
-            if (message != 'Chat Request' && message != 'Chat Ended' && message != 'Request Accepted') {
-                senderId = senderId;
-            } else {
-                // check if the contact already exists then get sender Id
-                const senderContactIndex = senderUser.contacts.findIndex(contact => contact.user.toString() === receiverUser._id.toString());
-                if (senderContactIndex !== -1) {
-                    senderId = senderUser.contacts[senderContactIndex].sender;
-                }
-
-            }
-
-            const senderContact = {
-                user: receiverUser._id,
-                lastMessage: message,
-                createdAt: Date.now(),
-                image: image,
-                ended: ended,
-                request: request,
-                sender: senderUser._id
-            };
-
-            const receiverContact = {
-                user: senderUser._id,
-                lastMessage: message,
-                createdAt: Date.now(),
-                image: image,
-                ended: ended,
-                request: request,
-                sender: senderUser._id
-            };
-
-            if (request == 'accepted') {
-                senderContact.startTime = Date.now();
-                receiverContact.startTime = Date.now();
-            }
-
-            // add contact to sender
-            const senderContactIndex = senderUser.contacts.findIndex(contact => contact.user.toString() === receiverUser._id.toString());
-            if (senderContactIndex === -1) {
-                senderUser.contacts.push(senderContact);
-            }
-            else {
-                senderUser.contacts[senderContactIndex] = senderContact;
-            }
-
-            // add contact to receiver
-            const receiverContactIndex = receiverUser.contacts.findIndex(contact => contact.user.toString() === senderUser._id.toString());
-            if (receiverContactIndex === -1) {
-                receiverUser.contacts.push(receiverContact);
-            }
-            else {
-                receiverUser.contacts[receiverContactIndex] = receiverContact;
-            }
-
-            senderUser.save();
-            receiverUser.save();
-
-
-            // save message in the database
-
-            const newMessage = new Message({
-                sender: senderUser._id,
-                receiver: receiverUser._id,
-                message: message,
-                createdAt: Date.now(),
-                image: image
-            });
-
-            var messageResult = '';
-            if (message != 'Chat Request' && message != 'Chat Ended' && message != 'Request Accepted') {
-                messageResult = await newMessage.save();
-            }
-
-            return messageResult;
-
-        }
-        catch (err) {
-            console.log(err);
-        }
-
-    },
-
-
-    async getContacts(email) {
-        console.log(email);
-        const user = await User.findOne({ email: email }).populate('contacts.user');
-        return user.contacts;
-    },
-
-    async getInitialMessages(senderId, receiverId) {
-        try {
-            const messages = await Message.find({
-                $or: [
-                    { sender: senderId, receiver: receiverId },
-                    { sender: receiverId, receiver: senderId }
-                ]
-            }).sort({ createdAt: -1 });
-
-            return messages;
-        }
-        catch (err) {
-            console.log(err);
-        }
-    },
 
     async getEmailFromId(id) {
         try {
@@ -413,7 +241,45 @@ module.exports = {
         catch (err) {
             console.log(err);
         }
-    }
+    },
 
+
+    async emitContacts(io, email) {
+        getContacts(email).then((contacts) => {
+            io.to(email).emit('contacts', contacts);
+        });
+    },
+
+    async sendUserStatus(io, email, status) {
+        getContacts(email).then((contacts) => {
+            for (let i = 0; i < contacts.length; i++) {
+                io.to(contacts[i].user.email).emit('onlineUsers', {
+                    email: email,
+                    status: status
+                });
+            }
+        });
+    },
+
+    async updateFirebaseToken(req, res, next) {
+        try {
+            const user = await User.findOne({ email: req.body.email });
+            if (user) {
+                const token = req.body.token;
+                user.firebaseToken = token;
+                await user.save();
+                res.status(200).json({
+                    status: true
+                });
+            } else {
+                res.status(200).json({
+                    status: false
+                });
+            }
+        }
+        catch (err) {
+            customError(err);
+        }
+    }
 
 }
