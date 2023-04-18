@@ -1,29 +1,27 @@
 const User = require('../models/user');
 const Message = require('../models/message');
-const { uploadMessageImage } = require('../middlewares/image');
-const userCon = require('./user');
 
-const sendMessage = (io, receiver, messages) => {
-    io.to(receiver).emit('onMessage', messages);
-}
-
-const getInitialMessages = async (senderId, receiverId) => {
-    try {
-        const messages = await Message.find({
-            $or: [
-                { sender: senderId, receiver: receiverId },
-                { sender: receiverId, receiver: senderId }
-            ]
-        }).sort({ createdAt: -1 });
-
-        return messages;
-    }
-    catch (err) {
-        console.log(err);
-    }
-}
 
 module.exports = {
+    async sendMessage(io, receiver, messages) {
+        io.to(receiver).emit('onMessage', messages);
+    },
+
+    async getInitialMessages(senderId, receiverId) {
+        try {
+            const messages = await Message.find({
+                $or: [
+                    { sender: senderId, receiver: receiverId },
+                    { sender: receiverId, receiver: senderId }
+                ]
+            }).sort({ createdAt: -1 });
+
+            return messages;
+        }
+        catch (err) {
+            console.log(err);
+        }
+    },
     async addMessageAndContact(senderId, receiverId, message, image, request, ended) {
         try {
             const senderUser = await User.findOne({ _id: senderId });
@@ -145,23 +143,10 @@ module.exports = {
         return user.contacts;
     },
 
-    async onMessage(io, data) {
+    async getEmailFromId(id) {
         try {
-            var messageData = '';
-            if (data.image === true) {
-                messageData = await uploadMessageImage(data.message, Date.now().toString().replace('.', ''));
-            } else {
-                messageData = data.message;
-            }
-            const message = await addMessageAndContact(data.sender, data.receiver, messageData, data.image, data.request, data.ended);
-            const senderEmail = await userCon.getEmailFromId(data.sender);
-            const receiverEmail = await userCon.getEmailFromId(data.receiver);
-            if (messageData != 'Chat Request' && messageData != 'Chat Ended' && messageData != 'Request Accepted') {
-                sendMessage(io, receiverEmail, [message]);
-                sendMessage(io, senderEmail, [message]);
-            }
-            userCon.emitContacts(io, senderEmail);
-            userCon.emitContacts(io, receiverEmail);
+            const user = await User.findOne({ _id: id });
+            return user.email;
         }
         catch (err) {
             console.log(err);
@@ -169,7 +154,7 @@ module.exports = {
     },
 
     async emitInitialMessages(io, email, senderId, receiverId) {
-        const messages = await getInitialMessages(senderId, receiverId);
+        const messages = await module.exports.getInitialMessages(senderId, receiverId);
         io.to(email).emit('onMessage', messages);
     }
 

@@ -1,6 +1,7 @@
-const { emitContacts, sendUserStatus, updateOnlineStatus } = require('../controllers/user');
+const { getEmailFromId, emitContacts, sendUserStatus, updateOnlineStatus } = require('../controllers/user');
 const { onReview } = require('../controllers/review');
-const { onMessage, emitInitialMessages, getContacts, addFavoriteContact, deleteContact } = require('../controllers/message');
+const { emitInitialMessages, getContacts, addFavoriteContact, deleteContact, sendMessage, addMessageAndContact } = require('../controllers/message');
+const { uploadMessageImage } = require('../middlewares/image');
 
 module.exports = {
     initSocket: (io) => {
@@ -26,7 +27,26 @@ module.exports = {
 
             // send message
             socket.on('message', async (data) => {
-                onMessage(io, data);
+                try {
+                    var messageData = '';
+                    if (data.image === true) {
+                        messageData = await uploadMessageImage(data.message, Date.now().toString().replace('.', ''));
+                    } else {
+                        messageData = data.message;
+                    }
+                    const message = await addMessageAndContact(data.sender, data.receiver, messageData, data.image, data.request, data.ended);
+                    const senderEmail = await getEmailFromId(data.sender);
+                    const receiverEmail = await getEmailFromId(data.receiver);
+                    if (messageData != 'Chat Request' && messageData != 'Chat Ended' && messageData != 'Request Accepted') {
+                        sendMessage(io, receiverEmail, [message]);
+                        sendMessage(io, senderEmail, [message]);
+                    }
+                    emitContacts(io, senderEmail);
+                    emitContacts(io, receiverEmail);
+                }
+                catch (err) {
+                    console.log(err);
+                }
             });
 
             // get contacts
